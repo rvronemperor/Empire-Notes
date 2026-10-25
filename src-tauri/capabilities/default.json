@@ -6,6 +6,10 @@
   "permissions": [
     "core:default",
     "opener:default",
+    {
+      "identifier": "sql:allow-execute",
+      "allow": [{ "path": "$APPCONFIG/*" }, { "path": "empire_notes.db" }]
+    },
     "sql:default"
   ]
 }

@@ -3,48 +3,55 @@ import Database from "@tauri-apps/plugin-sql";
 import "./App.css";
 
 function App() {
-  const [notaActual, setNotaActual] = useState("");
+  const [notaActual, setNotaActual] = useState("Cargando nota...");
   const [db, setDb] = useState<Database | null>(null);
 
-  // Inicializar la base de datos SQLite al abrir la app
+  // 1. Inicializar SQLite
   useEffect(() => {
     async function initDb() {
       try {
+        console.log("Conectando a SQLite...");
+        // Cargar o crear el archivo de base de datos
         const database = await Database.load("sqlite:empire_notes.db");
         setDb(database);
 
-        // Crear la tabla de notas si no existe
+        // Crear la tabla si no existe
         await database.execute(
           "CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT);"
         );
+        console.log("Tabla 'notes' lista.");
 
-        // Cargar la última nota guardada
-        const result: any[] = await database.select("SELECT content FROM notes ORDER BY id DESC LIMIT 1");
-        if (result.length > 0) {
+        // Cargar la nota más reciente
+        const result: any[] = await database.select(
+          "SELECT content FROM notes ORDER BY id DESC LIMIT 1"
+        );
+
+        if (result && result.length > 0) {
           setNotaActual(result[0].content);
         } else {
           setNotaActual("Escribe tus ideas aquí...");
         }
       } catch (error) {
         console.error("Error al inicializar la base de datos:", error);
+        setNotaActual("Error al cargar la base de datos.");
       }
     }
 
     initDb();
   }, []);
 
-  // Función para guardar la nota en SQLite automáticamente al escribir
+  // 2. Guardar nota al escribir
   const handleNotaChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const nuevoTexto = e.target.value;
     setNotaActual(nuevoTexto);
 
     if (db) {
       try {
-        // Guardar o actualizar en la base de datos local
-        await db.execute("DELETE FROM notes"); // Mantenemos una nota principal por ahora
-        await db.execute("INSERT INTO notes (content) VALUES (?)", [nuevoTexto]);
+        await db.execute("DELETE FROM notes;");
+        await db.execute("INSERT INTO notes (content) VALUES (?);", [nuevoTexto]);
+        console.log("Nota guardada en SQLite:", nuevoTexto);
       } catch (error) {
-        console.error("Error al guardar la nota:", error);
+        console.error("Error al guardar en SQLite:", error);
       }
     }
   };
@@ -62,17 +69,15 @@ function App() {
       </header>
 
       <div style={{ display: "flex", gap: "20px" }}>
-        {/* Barra lateral de notas */}
         <div style={{ width: "250px", borderRight: "1px solid #ccc", paddingRight: "10px" }}>
           <h3>Mis Libretas</h3>
           <ul style={{ listStyle: "none", padding: 0 }}>
             <li style={{ padding: "8px", background: "#f0f0f0", borderRadius: "4px", marginBottom: "5px", cursor: "pointer" }}>
-              📖 Nota Principal (Guardado Local)
+              📖 Nota Principal
             </li>
           </ul>
         </div>
 
-        {/* Área de edición estilo libreta con SQLite */}
         <div style={{ flex: 1, background: "#fdfbf7", padding: "20px", border: "1px solid #e0dcd5", borderRadius: "8px", minHeight: "400px", boxShadow: "0 4px 6px rgba(0,0,0,0.05)" }}>
           <h3>Página Estilo Libreta</h3>
           <textarea
